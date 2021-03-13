@@ -200,8 +200,7 @@ int main(int argc, char* argv[]){
     for(int i = 0; i < numWorkers; i++){
         write(mergerfd, &children[i], sizeof(children[i]));
     }
-    close(mergerfd);
-    mergerfd = open(currentPIDChar, O_WRONLY);
+
     for(int i = 0; i < numWorkers; i++){
         write(mergerfd, &childNumLines[i], sizeof(childNumLines[i]));
     }

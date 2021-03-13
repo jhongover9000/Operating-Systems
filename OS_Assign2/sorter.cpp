@@ -226,6 +226,7 @@ int main(int argc, char* argv[]){
     string line;
 	// If the file is readable, then start reading at the startIndex for the designated numLines.
 	while(lineCounter < startIndex){
+        getline(readFile, line);
         lineCounter++;
     }
     for(int i = 0; i < numLines; i++){
@@ -233,7 +234,6 @@ int main(int argc, char* argv[]){
         mainArray[currentIndex] = line;
         currentIndex++;
     }
-    cout<<currentIndex<<endl;
 	readFile.close();
 
     // Sorting. If sortType is 0, bubble sort. If 1, insertion sort.
@@ -245,44 +245,36 @@ int main(int argc, char* argv[]){
         selectionSort(mainArray, numLines, attributeNum, isDescending);
         // cout<<"Sorted."<<endl;
     }
-
     
-    // Add Time Report. Send to Merger.
-    char timeReport[80];
-    t2 = (double) times(&tb2);
-    // cout<<"sorter "<<pid<<": creating report"<<endl;
-    sprintf(timeReport, "sorter %d: Run time was %lf seconds in real time.", pid, (t2 - t1) / ticspersec);
-    datastreamString += timeReport;
-    datastreamString += ",";
-    
-    // Format for Sending. Change the array into one long string, which is then sent to the merger.
-    for(int i = 0; i < numLines; i++){
-        if(i == numLines-1){
-            datastreamString += (mainArray[i]);
-        }
-        else{
-            datastreamString += (mainArray[i] + ",");
-        }
-    }
-    // cout<<"sorter "<<pid<<": starting here."<<endl;
     // Piping. Copy into char array and send through pipe.
-    char datastreamChar[80*(numLines)];                       // wanted to be safe
-    strcpy(datastreamChar, datastreamString.c_str());
+    char datastreamChar[60];                      
     sprintf(pipeName, "%d", pid);
-
+    int linesWritten = 0;
     cout<<"sorter: Opening pipe "<<pid<<"..."<<endl;
     fd = open(pipeName, O_WRONLY);
+    int indexCounter = 0;
+    for(int i = 0; i < numLines; i++){
+        string temp = mainArray[i];
+        // cout<<pid<<" temp: "<<temp<<endl;
+        strncpy(datastreamChar, temp.c_str(), sizeof(datastreamChar));
+        // cout<<pid<<" data: "<<datastreamChar<<endl;
+        // datastreamChar[sizeof(datastreamChar) - 1] = 0;
+        write(fd, datastreamChar, sizeof(datastreamChar));
+        indexCounter++;
+        linesWritten++;
+    }
 
-    write(fd, datastreamChar, sizeof(datastreamChar));
-
-    cout<<"sorter: "<<pid<<" wrote data..."<<endl;
-
+    // Add Time Report. Send to Merger.
+    char timeReport[60];
+    t2 = (double) times(&tb2);
+    sprintf(timeReport, "sorter %d: Run time was %lf seconds in real time.", pid, (t2 - t1) / ticspersec);
+    // fd = open(pipeName, O_WRONLY);
+    write(fd, timeReport, sizeof(timeReport)+1);
     close(fd);
-    cout << "sorter: Pipe " <<pid<<" closed."<<endl;
+    // cout << "sorter: Pipe " <<pid<<" closed."<<endl;
 
     // Send SIGUSR1 to root before closing.
     kill(rootPID, SIGUSR1);
-    // cout<<"sorter "<<pid<<": Successfully Terminated." <<endl;
 
     exit(0);
 }

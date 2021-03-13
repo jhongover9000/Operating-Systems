@@ -182,62 +182,54 @@ int main(int argc, char* argv[]){
     for(int i = 0; i < numWorkers; i++){
         read(mergerfd, &sorters[i], sizeof(sorters[i]));
     }
-    close(mergerfd);
-    mergerfd = open(currentPIDChar, O_RDONLY);
+
     for(int i = 0; i < numWorkers; i++){
         read(mergerfd, &sorterNumLines[i], sizeof(sorterNumLines[i]));
     }
     close(mergerfd);
-    for(int i = 0; i < numWorkers; i++){
-        cout<<sorterNumLines[i]<<endl;
-    }
+
     // unlink the pipe to delete from filesystem
     unlink(currentPIDChar);
     // cout << "merger: Closed merger pipe." <<endl;
 
-    // Read From Sorter Pipes.
+    // Read From Sorter Pipes. For each pipe, it opens twice: once to read the lines, then again to
+    // read the time report
     for(int i = 0; i < numWorkers; i++){
         // select sorter based on PID
         pid = sorters[i];
         sprintf(currentPIDChar, "%d", pid);
-        // cout<< "merger: Opening pipe "<<pid<<"..."<<endl;
+        char readBuff[60];
+        cout<< "merger: Opening pipe "<<pid<<"..."<<endl;
         fd = open(currentPIDChar, O_RDONLY);
-        char readBuff[60*totalSize/2];                
+
         // save starting index (used for merging)
         sorterStartIndex[i] = currentIndex;
-
-        // use the string that was read in order to fill the mainArray
-        read(fd, &readBuff, sizeof(readBuff));
         string readString;
-        readString = readBuff;
-        stringstream readline(readString);
-        // cout<<"read string"<<endl;
-        int numLines = 0;
-        // split the line received by ',', then add to the mainArray at index currentIndex
-        while(readline.good()){
-            string substring;
-            getline(readline, substring, ',');
-            if(numLines == 0){
-                timeReportString += substring + ",";
-                // cout<<timeReportString<<endl;
-                numLines++;
-            }
-            else{
-                mainArray[currentIndex] = substring;
-                numLines++;
-                currentIndex++;
-            }
-            // cout<<substring<<endl;
-        }
-        sorterNumLines[i] = numLines;
 
-        // close pipe after reading and writing into mainArray
+        // split the line received by ',', then add to the mainArray at index currentIndex
+        for(int j = 0; j < sorterNumLines[i]; j++){
+            read(fd, &readBuff, sizeof(readBuff));
+            // cout<<readBuff<<endl;
+            readString = readBuff;
+            mainArray[currentIndex] = readString;
+            currentIndex++;
+        }
+        cout<< "merger: " << currentIndex <<endl;
+        // close(fd);
+
+        // // receive time report
+        // fd = open(currentPIDChar, O_RDONLY);
+        char timeReport[60];
+        read(fd, &timeReport, sizeof(timeReport));
+        timeReportSubstring = timeReport;
+        cout << timeReport << endl;
+        timeReportString += timeReportSubstring + ",";
         close(fd);
+
         // // unlink the pipe to delete from filesystem
         unlink(currentPIDChar);
         // cout<< "merger: Pipe " <<pid<<" closed."<<endl;
     }
-
 
     // // Merge. Happens once all sorters have finished. Create a new array and sort into it.
     // // string newArray[totalSize];
@@ -285,11 +277,12 @@ int main(int argc, char* argv[]){
 
     // Send SIGUSR2 and time report to root before closing.  
     t2 = (double) times(&tb2);
-    char timeReport[80];
-    
+    char timeReport[60];
     // cout<<"merger: creating report"<<endl;
-    sprintf(timeReport, "merger: Run time was %lf seconds in real time.", (t2 - t1) / ticspersec);
-    cout<<timeReportString<<endl;
+    sprintf(timeReport, "merger %d: Run time was %lf seconds in real time.", getpid(), (t2 - t1) / ticspersec);
+    timeReportSubstring = timeReport;
+    timeReportString += timeReport;
+    // cout<<timeReportString<<endl;
 
     char datastreamChar[60*(numWorkers+1)];                      
     strcpy(datastreamChar, timeReportString.c_str());
@@ -298,7 +291,7 @@ int main(int argc, char* argv[]){
     // cout<<"merger: send sig"<<endl;
     kill(rootPID, SIGUSR2);
     int rootfd = open(argv[6], O_WRONLY);
-    cout<<"merger: opening"<<endl;
+    // cout<<"merger: opening"<<endl;
     write(rootfd, datastreamChar, sizeof(datastreamChar)+1);
     close(rootfd);
     // cout<<"merger: closed"<<endl;
