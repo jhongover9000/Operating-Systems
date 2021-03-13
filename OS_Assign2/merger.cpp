@@ -1,26 +1,32 @@
+// OS Project 2: Merger (CPP)
+// Description: This is the merger node for the overall program. It receives the data from the sorters
+// and merges them into a single array before outputting all of this into a text file.
+// =========================================================================================================
+// =========================================================================================================
+// Includes
 #include <cstdlib>
-#include <sys/wait.h>
 #include <time.h>
-#include <signal.h>
+#include <sys/times.h>
+#include <signal.h>         // forking and process signals
 #include <unistd.h>
-#include <string>
-
-#include <iostream>
-#include <fstream>
-#include <sstream>
-
-#include <fcntl.h>
+#include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/stat.h>       // mkfifo
-#include <sys/times.h>  
+#include <fcntl.h>
+#include <iostream>         // strings, i/o
+#include <fstream>
+#include <sstream>
+#include <string.h>
 
 using namespace std;
 
-
+// =========================================================================================================
+// =========================================================================================================
+// Main Program
 int main(int argc, char* argv[]){
 
     // Timer. This adapted from the example in the prompt.
-    double t1, t2, cpu_time;
+    double t1, t2;
     struct tms tb1, tb2; 
     double ticspersec;
     int i,sum=0;
@@ -61,10 +67,6 @@ int main(int argc, char* argv[]){
     for(int i = 0; i < numWorkers; i++){
         read(mergerfd, &sorters[i], sizeof(sorters[i]));
     }
-    // Print Sorters (Confirmation)
-    // for(int i = 0; i < numWorkers; i++){
-    //     cout << sorters[i] << endl;
-    // }
     close(mergerfd);
     // unlink the pipe to delete from filesystem
     unlink(currentPIDChar);
@@ -78,25 +80,8 @@ int main(int argc, char* argv[]){
         // cout<< "merger: Opening pipe "<<pid<<"..."<<endl;
         fd = open(currentPIDChar, O_RDONLY);
         char readBuff[60*totalSize/2];                
-        // cout<< readBuff <<endl;
         // save starting index (used for merging)
         sorterStartIndex[i] = currentIndex;
-        // while there is something to read
-        // cout<<pid<<endl;
-        // int numLines = 0;
-        // int bytesRead;
-        // for(int i = 0; i < 100; i++){
-        //     read(fd, &readBuff, sizeof(readBuff));
-        //         // cout << numLines << ", ";
-        //         string substring;
-        //         substring = readBuff;
-        //         // cout<<substring<<endl;
-        //         mainArray[currentIndex] = substring;
-        //         numLines++;
-        //         currentIndex++;
-        //         // cout<<substring<<endl;
-        // }
-        // sorterNumLines[i] = numLines;
 
         // use the string that was read in order to fill the mainArray
         read(fd, &readBuff, sizeof(readBuff));
@@ -126,42 +111,40 @@ int main(int argc, char* argv[]){
 
     // Merge. Happens once all sorters have finished. Create a new array and sort into it.
     // string newArray[totalSize];
-    // bool isFinished = false;
-    // int newArrayIndex = 0;
-    // int smallestWorkerIndex;
-    // // set the current index of all sorters to their respective starting indicies
-    // for(int i = 0; i < numWorkers; i++){
-    //     sorterCurrentIndex[i] = sorterStartIndex[i];
-    // }
-    // // while at least one of the sorters 
-    // while(!isFinished){
-    //     bool firstTouch = true;
-    //     // check for remaining numbers
-    //     for(int i = 0; i < numWorkers; i++){
-    //         // if the current index is smaller than the initial starting index + number of lines
-    //         if(sorterCurrentIndex[i] < (sorterStartIndex[i] + sorterNumLines[i]) ){
-    //             isFinished = false;
-    //             // first unfinished array is set as the default
-    //             if(firstTouch){
-    //                 smallestWorkerIndex = i;
-    //                 firstTouch = false;
-    //             }
-    //         }
-    //         else{
-    //             isFinished = true;
-    //         }
-    //     }
-    //     newArray[newArrayIndex] = sorters[smallestWorkerIndex];
-    //     sorterCurrentIndex[smallestWorkerIndex]++;
-    // }
+    bool isFinished = false;
+    int newArrayIndex = 0;
+    int smallestWorkerIndex;
+    // set the current index of all sorters to their respective starting indicies
+    for(int i = 0; i < numWorkers; i++){
+        sorterCurrentIndex[i] = sorterStartIndex[i];
+    }
+    // while at least one of the sorters 
+    while(!isFinished){
+        bool firstTouch = true;
+        // check for remaining numbers
+        for(int i = 0; i < numWorkers; i++){
+            // if the current index is smaller than the initial starting index + number of lines
+            if(sorterCurrentIndex[i] < (sorterStartIndex[i] + sorterNumLines[i]) ){
+                isFinished = false;
+                // first unfinished array is set as the default
+                if(firstTouch){
+                    smallestWorkerIndex = i;
+                    firstTouch = false;
+                }
+            }
+            else{
+                isFinished = true;
+            }
+        }
+        newArray[newArrayIndex] = sorters[smallestWorkerIndex];
+        sorterCurrentIndex[smallestWorkerIndex]++;
+    }
 
     // Write into Output File.
     ofstream writeFile(outputFile);
     for(int i = 0; i < totalSize; i++){
         writeFile << mainArray[i] << endl;
     }
-
-    
 
     // Send SIGUSR2 and time report to root before closing.  
     t2 = (double) times(&tb2);
