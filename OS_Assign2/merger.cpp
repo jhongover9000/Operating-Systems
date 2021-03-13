@@ -19,6 +19,119 @@
 #include <string.h>
 
 using namespace std;
+// =======================================================================================================================================
+// =======================================================================================================================================
+// Signal Handlers
+void signalHandler(int sig, siginfo_t *info, void *ucontext){
+    pid_t sender_pid = info->si_pid;
+    cout<<sender_pid<<endl;
+}
+
+// =======================================================================================================================================
+// =======================================================================================================================================
+// Support Functions (for merging)
+
+
+
+// Trim Spaces. For comparisons. From GeeksforGeeks at https://www.geeksforgeeks.org/remove-extra-spaces-string/.
+void removeSpaces(string &str)
+{
+    // n is length of the original string
+    int n = str.length();
+ 
+    // i points to next position to be filled in
+    // output string/ j points to next character
+    // in the original string
+    int i = 0, j = -1;
+ 
+    // flag that sets to true is space is found
+    bool spaceFound = false;
+ 
+    // Handles leading spaces
+    while (++j < n && str[j] == ' ');
+    // read all characters of original string
+    while (j < n){
+        // if current characters is non-space
+        if (str[j] != ' '){
+            // remove preceding spaces before dot,
+            // comma & question mark
+            if ((str[j] == '.' || str[j] == ',' || str[j] == '?') && i - 1 >= 0 && str[i - 1] == ' '){
+                str[i - 1] = str[j++];
+            }
+            else{
+                // copy current character at index i
+                // and increment both i and j
+                str[i++] = str[j++];
+            }
+            // set space flag to false when any
+            // non-space character is found
+            spaceFound = false;
+        }
+        // if current character is a space
+        else if (str[j++] == ' '){
+            // If space is encountered for the first
+            // time after a word, put one space in the
+            // output and set space flag to true
+            if (!spaceFound){
+                str[i++] = ' ';
+                spaceFound = true;
+            }
+        }
+    }
+    // Remove trailing spaces
+    if (i <= 1){
+        str.erase(str.begin() + i, str.end());
+    }
+    else{
+        str.erase(str.begin() + i - 1, str.end());
+    }
+
+}
+
+// Get Attribute. Uses a string line and the index of the attribute.
+double getAttributeDouble(string line, int attributeNum){
+    // cout<<"Line: "<<line<<endl;
+    string sarray[6];
+    string substring;
+    removeSpaces(line);
+    stringstream ss(line);
+    for(int i = 0; i < 6; i++){
+        getline(ss, substring, ' ');
+        sarray[i] = substring;
+        // cout<<substring<<endl;
+    }
+    // cout<<"Attribute String: "<<sarray[attributeNum]<<endl;
+    double attribute = stod(sarray[attributeNum]);
+    return attribute;
+}
+
+// Comparison. Takes string A, the current string, and compares it to B. If true is returned,
+// then a swap will take place. False means no swap need occur.
+bool compare(string a, string b, int attributeNum, bool isDescending){
+    // cout << "Starting Compare." <<endl;
+    double attributeA = getAttributeDouble(a, attributeNum);
+    // cout<<"Attribute A:"<<attributeA<<endl;;
+    double attributeB = getAttributeDouble(b, attributeNum);
+    // cout<<"Attribute B:"<<attributeB<<endl;;
+    // descending means that the highest goes to the front. if this is true, then this means that|
+    // A and B switch places (as B is higher than A).
+    if(isDescending){
+        return attributeA < attributeB;
+    }
+    // ascending means that the lowest goes to the front. if this is true then this means that
+    // A and B switch places (as B is lower than A).
+    else{
+        return attributeA > attributeB;
+    }
+}
+
+// Swap Places
+void swapPlace(string &a, string &b){
+    string temp;
+    temp = a;  
+    a = b;  
+    b = temp;
+}
 
 // =========================================================================================================
 // =========================================================================================================
@@ -32,15 +145,17 @@ int main(int argc, char* argv[]){
     int i,sum=0;
     ticspersec = (double) sysconf(_SC_CLK_TCK);
     t1 = (double) times(&tb1);
+    string timeReportSubstring = "";
+    string timeReportString = "";   
 
     // Initialization Arguments
     int totalSize = atoi(argv[1]);                 // total number of lines
     int numWorkers = atoi(argv[2]);                    // number of sorters
     int attributeNum = atoi(argv[3]);              // selection of sorting type (index)  
-    bool displayDescending = true;              // display in descending order (default is true)
+    bool isDescending = true;              // display in descending order (default is true)
     string argument = argv[4];
     if(argument == "ascending"){
-        displayDescending = false;
+        isDescending = false;
     }
     string outputFile = argv[5];                 // file path for CSV file (output file)
     int rootPID = atoi(argv[6]);
@@ -68,6 +183,14 @@ int main(int argc, char* argv[]){
         read(mergerfd, &sorters[i], sizeof(sorters[i]));
     }
     close(mergerfd);
+    mergerfd = open(currentPIDChar, O_RDONLY);
+    for(int i = 0; i < numWorkers; i++){
+        read(mergerfd, &sorterNumLines[i], sizeof(sorterNumLines[i]));
+    }
+    close(mergerfd);
+    for(int i = 0; i < numWorkers; i++){
+        cout<<sorterNumLines[i]<<endl;
+    }
     // unlink the pipe to delete from filesystem
     unlink(currentPIDChar);
     // cout << "merger: Closed merger pipe." <<endl;
@@ -94,51 +217,65 @@ int main(int argc, char* argv[]){
         while(readline.good()){
             string substring;
             getline(readline, substring, ',');
-            mainArray[currentIndex] = substring;
-            numLines++;
-            currentIndex++;
+            if(numLines == 0){
+                timeReportString += substring + ",";
+                // cout<<timeReportString<<endl;
+                numLines++;
+            }
+            else{
+                mainArray[currentIndex] = substring;
+                numLines++;
+                currentIndex++;
+            }
             // cout<<substring<<endl;
         }
         sorterNumLines[i] = numLines;
 
         // close pipe after reading and writing into mainArray
         close(fd);
-        // unlink the pipe to delete from filesystem
+        // // unlink the pipe to delete from filesystem
         unlink(currentPIDChar);
         // cout<< "merger: Pipe " <<pid<<" closed."<<endl;
     }
 
 
-    // Merge. Happens once all sorters have finished. Create a new array and sort into it.
+    // // Merge. Happens once all sorters have finished. Create a new array and sort into it.
+    // // string newArray[totalSize];
+    // bool isFinished = false;
     // string newArray[totalSize];
-    bool isFinished = false;
-    int newArrayIndex = 0;
-    int smallestWorkerIndex;
-    // set the current index of all sorters to their respective starting indicies
-    for(int i = 0; i < numWorkers; i++){
-        sorterCurrentIndex[i] = sorterStartIndex[i];
-    }
-    // while at least one of the sorters 
-    while(!isFinished){
-        bool firstTouch = true;
-        // check for remaining numbers
-        for(int i = 0; i < numWorkers; i++){
-            // if the current index is smaller than the initial starting index + number of lines
-            if(sorterCurrentIndex[i] < (sorterStartIndex[i] + sorterNumLines[i]) ){
-                isFinished = false;
-                // first unfinished array is set as the default
-                if(firstTouch){
-                    smallestWorkerIndex = i;
-                    firstTouch = false;
-                }
-            }
-            else{
-                isFinished = true;
-            }
-        }
-        newArray[newArrayIndex] = sorters[smallestWorkerIndex];
-        sorterCurrentIndex[smallestWorkerIndex]++;
-    }
+    // int newArrayIndex = 0;
+    // int minMaxSorterNumber;
+    // // set the current index of all sorters to their respective starting indicies
+    // for(int i = 0; i < numWorkers; i++){
+    //     sorterCurrentIndex[i] = sorterStartIndex[i];
+    // }
+    // // merge the sorted arrays
+    // for(int i = 0; i < totalSize; i++){
+    //     bool firstTouch = true;
+    //     // select unfinished sorter section
+    //     for(int j = 0; j < numWorkers; j++){
+    //         if(firstTouch && sorterCurrentIndex[i] < (sorterStartIndex[i] + sorterNumLines[i])){
+    //             // first unfinished array is set as the default
+    //             minMaxSorterNumber = i;
+    //             firstTouch = false;
+    //         }
+    //     }
+    //     for(int k = 0; k < numWorkers; k++){
+    //         // compare minMaxSorter's current index string to that of each other sorter
+    //         if(minMaxSorterNumber != k){
+    //             bool compared = compare(mainArray[sorterCurrentIndex[minMaxSorterNumber]], mainArray[sorterCurrentIndex[k]], attributeNum, isDescending);
+    //             // if there is another that is bigger/smaller, change to that
+    //             if(compared){
+    //                 minMaxSorterNumber = k;
+    //                 // cout<<(minMaxSorterIndex)<<endl;
+    //             }
+    //         }
+    //     }
+    //     // update new array
+    //     newArray[i] = mainArray[sorterCurrentIndex[minMaxSorterNumber]];
+    //     cout<<(newArray[i])<<endl;
+    // }
+    // cout<<"sorted"<<endl;
 
     // Write into Output File.
     ofstream writeFile(outputFile);
@@ -149,13 +286,22 @@ int main(int argc, char* argv[]){
     // Send SIGUSR2 and time report to root before closing.  
     t2 = (double) times(&tb2);
     char timeReport[80];
+    
     // cout<<"merger: creating report"<<endl;
-    kill(rootPID, SIGUSR2);
     sprintf(timeReport, "merger: Run time was %lf seconds in real time.", (t2 - t1) / ticspersec);
+    cout<<timeReportString<<endl;
+
+    char datastreamChar[60*(numWorkers+1)];                      
+    strcpy(datastreamChar, timeReportString.c_str());
+
     // cout<<timeReport<<endl;
+    // cout<<"merger: send sig"<<endl;
+    kill(rootPID, SIGUSR2);
     int rootfd = open(argv[6], O_WRONLY);
-    write(rootfd, timeReport, sizeof(timeReport)+1);
+    cout<<"merger: opening"<<endl;
+    write(rootfd, datastreamChar, sizeof(datastreamChar)+1);
     close(rootfd);
+    // cout<<"merger: closed"<<endl;
 
     cout<< "merger: Successfully Terminated." <<endl;
     exit(0);

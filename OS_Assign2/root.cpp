@@ -19,31 +19,36 @@ using namespace std;
 
 int signalOneCount = 0;
 int signalTwoCount = 0;
+
+// Open Pipe for Time Reports.
 pid_t rootpid = getpid();          // to keep track of own process ID
 char rootPIDChar[40];
+bool signaled = false;
+int numWorkers;                    // number of sorters
 
-char timeReports[80];
 string timeReportSubstring = "";
 string timeReportString = "";
 
+
 void signalHandlerOne(int sig){
-    signal(SIGUSR1, signalHandlerOne);
-    signal(SIGUSR2, signalHandlerOne);
+    // printf("signal 1\n");
+    signalOneCount++;   
+}
+
+void signalHandlerTwo(int sig){
+    signal(SIGUSR2, signalHandlerTwo);
+    // printf("signal 2\n");
+    // wait for merger to finish and send information
+    cout<<"root: opening"<<endl;
     int rootfd = open(rootPIDChar, O_RDONLY);
+    char timeReports[60*(numWorkers+1)];
     read(rootfd, &timeReports, sizeof(timeReports));
     fcntl(rootfd,O_NONBLOCK);
-    timeReportSubstring = timeReports;
-    // cout<<timeReports<<endl;
-    timeReportString += timeReportSubstring + ",";
+    timeReportString += timeReports;
     close(rootfd);
-    if(sig == SIGUSR1){
-        printf("signal 1\n");
-        signalOneCount++;   
-    }
-    else{
-        printf("signal 2\n");
-        signalTwoCount++;
-    }
+    cout<<"root: closed"<<endl;
+    unlink(rootPIDChar);
+    signalTwoCount++;
 }
 
 // Checker for Digits. Ensures that the command line arguments (where applicable) are digits only.
@@ -62,7 +67,7 @@ bool isDigits(char* argument) {
 
 int main(int argc, char* argv[]){
     signal(SIGUSR1, signalHandlerOne);
-    signal(SIGUSR2, signalHandlerOne);
+    signal(SIGUSR2, signalHandlerTwo);
 
     // Timer. This adapted from the example in the prompt.
     double t1, t2, cpu_time;
@@ -72,24 +77,23 @@ int main(int argc, char* argv[]){
     ticspersec = (double) sysconf(_SC_CLK_TCK);
     t1 = (double) times(&tb1);
 
-    // Open Pipe for Time Reports.
-    sprintf(rootPIDChar, "%d", rootpid);
-    mkfifo(rootPIDChar, 0777);
-
 	// Fork Variables
 	int status;
     pid_t pid;                      // keep track of coord PID
 
     // Pipe
     int fd[2];
+    sprintf(rootPIDChar, "%d", rootpid);
+    mkfifo(rootPIDChar, 0777);
 
     // Initialization Arguments
 	string mainCSV;                    // file path for CSV file (input file)
     string outputFile;                 // file path for CSV file (output file)
-	int numWorkers;                    // number of sorters
+
 	bool randomRange = false;          // random range selection (default is false)
     int attributeNum = 0;              // selection of sorting type (index)            
     bool displayDescending = true;     // display in descending order (default is true)
+    int totalSize;
 
     char pidChar[40];
     string reports[numWorkers+1];        // stores the times of processes (sorters + merger)
@@ -109,7 +113,7 @@ int main(int argc, char* argv[]){
                     mainCSV = argv[i+1];
                     ifstream readFile(mainCSV);
                     if(readFile.good()){
-                        // cout << "File is ok." << endl;
+                        // cout << "file is ok" <<endl;
                     }
                     else{
                         cout<< "root: File " << mainCSV << " cannot be read. Make sure to type the entire file with its extension"<<
@@ -165,12 +169,12 @@ int main(int argc, char* argv[]){
         }
 
         // Print Arguments
-        cout << "CSV: " << mainCSV << endl;
-        cout << "Workers: " << numWorkers << endl;
-        cout << "Random Range (1 is true): " << randomRange << endl;
-        cout << "Attribute Index: " << attributeNum << endl;
-        cout << "Descending (1 is true): " << displayDescending << endl;
-        cout << "Output File: " << outputFile << endl;
+        // cout << "CSV: " << mainCSV << endl;
+        // cout << "Workers: " << numWorkers << endl;
+        // cout << "Random Range (1 is true): " << randomRange << endl;
+        // cout << "Attribute Index: " << attributeNum << endl;
+        // cout << "Descending (1 is true): " << displayDescending << endl;
+        // cout << "Output File: " << outputFile << endl;
     }
 
     // Forking. Check for error first.
@@ -184,14 +188,14 @@ int main(int argc, char* argv[]){
         strcpy(argv[0],"./coord");
         execvp(argv[0], &argv[0]);
     }
+
+
+
     
     // wait for the coord node to finish its task.
     while(wait(&status) > 0){
-        // unlink root pipe
-        unlink(rootPIDChar);
+
     }
-
-
 
     // print times
     printf("\e[1;1H\e[2J");
@@ -203,9 +207,8 @@ int main(int argc, char* argv[]){
                 cout<<substring<<endl;
             }
         }
-    char timeReport[80];
     t2 = (double) times(&tb2);
-    printf("root: Run time was %lf seconds in real time.\n",(t2 - t1) / ticspersec);
+    printf("root: Total turnaround time was %lf seconds in real time.\n",(t2 - t1) / ticspersec);
     // print signal counts
     cout<< "Times SIGUSR1 was sent: " << signalOneCount <<endl;
     cout<< "Times SIGUSR2 was sent: " << signalTwoCount <<endl;
