@@ -16,20 +16,6 @@
 
 using namespace std;
 
-pid_t mergerPID;
-
-void signalHandlerOne(int sig){
-	signal(SIGUSR1, signalHandlerOne);
-	// printf("coord: signal from child process [%d]\n", sig);
-    kill(mergerPID,SIGUSR1);
-}
-
-void signalHandlerTwo(int sig){
-	signal(SIGUSR2, signalHandlerTwo);
-	// printf("coord: signal from child process [%d]\n", sig);
-    kill(getppid(),SIGUSR2);
-}
-
 int main(int argc, char* argv[]){
 
     srand(time(NULL));
@@ -69,7 +55,7 @@ int main(int argc, char* argv[]){
     int currentIndex;               // current index (for merging)
     pid_t pid;
     pid_t ppid = getppid();       // ppid to pass to sorters so that they can send a signal directly to root
-
+    pid_t mergerPID;
     
     // Parse Command Line Arguments. Also checks if arguments are valid.
     for(int i = 1; i < argc-1; i++){
@@ -111,7 +97,7 @@ int main(int argc, char* argv[]){
                 }
                 strcpy(displayDescendingChar,argv[i+1]);
             }
-            // If '-o', designate the outputFile path
+            // If '-s', designate the outputFile path
             else if(argv[i][1] == 's'){
                 outputFile = argv[i+1];
                 strcpy(outputFileChar, argv[i+1]);
@@ -139,6 +125,7 @@ int main(int argc, char* argv[]){
     // Update sizeCounter, create array for sorter inputs
     sizeCounter = totalSize;
     int children[numWorkers];                 // array to store PIDs of children
+    int childNumLines[numWorkers];
     sprintf(totalSizeChar, "%d", totalSize);
     string mainArray[totalSize];
     // cout << "Total Size: " << totalSize << endl;
@@ -188,6 +175,7 @@ int main(int argc, char* argv[]){
         }
         // otherwise, update the worker array and create a named pipe.
         children[childNum] = pid;
+        childNumLines[childNum] = numLines;
         sprintf(currentPIDChar, "%d", pid);
         mkfifo(currentPIDChar, 0777);
         cout << pid << ": " << startIndexChar << " " << numLinesChar << " " << sortTypeChar << endl;
@@ -211,6 +199,11 @@ int main(int argc, char* argv[]){
     int mergerfd = open(currentPIDChar, O_WRONLY);
     for(int i = 0; i < numWorkers; i++){
         write(mergerfd, &children[i], sizeof(children[i]));
+    }
+    close(mergerfd);
+    mergerfd = open(currentPIDChar, O_WRONLY);
+    for(int i = 0; i < numWorkers; i++){
+        write(mergerfd, &childNumLines[i], sizeof(childNumLines[i]));
     }
     close(mergerfd);
     // cout << endl<< "coord: Closed merger pipe." <<endl;
