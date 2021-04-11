@@ -1,31 +1,38 @@
+// =========================================================================================================
+// =========================================================================================================
+// OS Project 2: Coord (CPP)
+// Joseph Hong
+// Description: This is the coord node for the overall program. It receives the data from the root
+// and uses this in order to create multiple sorters and a merger to merge the result from the sorters.
+// =========================================================================================================
+// =========================================================================================================
+// Includes
 #include <cstdlib>
-#include <sys/wait.h>
 #include <time.h>
-#include <signal.h>
+#include <sys/times.h>
+#include <signal.h>         // forking and process signals
 #include <unistd.h>
-#include <string.h>
-#include <cstring>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-
-#include <fcntl.h>
+#include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/stat.h>       // mkfifo
-#include <sys/times.h>  
-
+#include <fcntl.h>
+#include <iostream>         // strings, i/o
+#include <fstream>
+#include <sstream>
+#include <string.h>
 using namespace std;
 
+// =======================================================================================================================================
+// =======================================================================================================================================
+// Main Program
 int main(int argc, char* argv[]){
 
+    // Random Seed (For Random Ranges)
     srand(time(NULL));
-
-    // cout << "Running Coord.." << endl;
 
     // Initialization Arguments
 	string mainCSV;                    // file path for CSV file (input file)
     string outputFile;                 // file path for CSV file (output file)
-    
 	int numWorkers;                    // number of sorters
 	bool randomRange = false;          // random range selection (default is false)
     int attributeNum = 0;              // selection of sorting type (index)            
@@ -33,6 +40,7 @@ int main(int argc, char* argv[]){
     int totalSize = 0;                 // total number of lines
     int sizeCounter;                   // used for the random ranges
 
+    // Character Arrays of Variables
     char inputFileChar[40];
     char startIndexChar[40];
     char numLinesChar[40];
@@ -49,16 +57,16 @@ int main(int argc, char* argv[]){
 
     // Fork Variables
 	int status;
-    int childNum = 0; 
-    int startIndex = 0;                 // starting index
+    int childNum = 0;               // child number
+    int startIndex = 0;             // starting index
     int numLines;                   // number of lines to read
     int currentIndex;               // current index (for merging)
     pid_t pid;
-    pid_t ppid = getppid();       // ppid to pass to sorters so that they can send a signal directly to root
-    pid_t mergerPID;
+    pid_t ppid = getppid();         // ppid to pass to sorters so that they can send a signal directly to root
+    pid_t mergerPID;                // merger PID
     
     // Parse Command Line Arguments. Also checks if arguments are valid.
-    for(int i = 1; i < argc-1; i++){
+    for(int i = 1; i < argc; i++){
         // Check arguments
         if(argv[i][0] == '-'){
             // If '-i', check to make sure that the file exists.
@@ -69,7 +77,6 @@ int main(int argc, char* argv[]){
             // If '-k', create an array to store the PIDs of the children.
             else if(argv[i][1] == 'k'){
                 numWorkers = atoi(argv[i+1]);
-                cout<<"workers:"<<numWorkers<<endl;
                 sprintf(numWorkersChar, "%d", numWorkers);
             }
             // If '-r', set randomRange to true.
@@ -85,15 +92,11 @@ int main(int argc, char* argv[]){
             // If '-o', check if descending or ascending
             else if(argv[i][1] == 'o'){
                 string argument = argv[i+1];
-                if(argument == "descending"){
+                if(argument == "d"){
                     displayDescending = true;
                 }
-                else if(argument == "ascending"){
+                else if(argument == "a"){
                     displayDescending = false;
-                }
-                else{ 
-                    cout << "root: Please specify 'ascending' or 'descending' in '-o' argument. Case sensitive." <<endl;
-                    exit(1);
                 }
                 strcpy(displayDescendingChar,argv[i+1]);
             }
@@ -103,14 +106,6 @@ int main(int argc, char* argv[]){
                 strcpy(outputFileChar, argv[i+1]);
             }
         }
-
-        // Print Arguments
-        // cout << "CSV: " << mainCSV << endl;
-        // cout << "Workers: " << numWorkers << endl;
-        // cout << "Random Range (1 is true): " << randomRange << endl;
-        // cout << "Attribute Index: " << attributeNum << endl;
-        // cout << "Descending (1 is true): " << displayDescending << endl;
-        // cout << "Output File: " << outputFile << endl;
     }
 
     // Check Size of Input File (Count Lines)
@@ -123,12 +118,15 @@ int main(int argc, char* argv[]){
 	readFile.close();
 
     // Update sizeCounter, create array for sorter inputs
-    sizeCounter = totalSize;
-    int children[numWorkers];                 // array to store PIDs of children
-    int childNumLines[numWorkers];
+    sizeCounter = totalSize;                    // total number of lines in the file
+    if(totalSize < numWorkers){
+        cout<<"error: Number of workers exceeds number of lines."<<endl;
+        exit(1);
+    }
+    int children[numWorkers];                   // array to store PIDs of children
+    int childNumLines[numWorkers];              // number of lines per child
     sprintf(totalSizeChar, "%d", totalSize);
     string mainArray[totalSize];
-    // cout << "Total Size: " << totalSize << endl;
 
     // Create Sorters. Loop based on total number of workers.
     for(childNum = 0; childNum < numWorkers; childNum++){
@@ -178,9 +176,7 @@ int main(int argc, char* argv[]){
         childNumLines[childNum] = numLines;
         sprintf(currentPIDChar, "%d", pid);
         mkfifo(currentPIDChar, 0777);
-        cout << pid << ": " << startIndexChar << " " << numLinesChar << " " << sortTypeChar << endl;
         startIndex += numLines;
-        // cout << sizeCounter << endl;
     }
 
     // Create Merger. Save PID to mergerPID. Create pipe and send sorter PIDs.
@@ -198,22 +194,16 @@ int main(int argc, char* argv[]){
     // create pipe to send sorter PIDs
     int mergerfd = open(currentPIDChar, O_WRONLY);
     for(int i = 0; i < numWorkers; i++){
-        write(mergerfd, &children[i], sizeof(children[i]));
+        int bytesWritten = write(mergerfd, &children[i], sizeof(children[i]));
     }
-
+    // send sorter numLines
     for(int i = 0; i < numWorkers; i++){
-        write(mergerfd, &childNumLines[i], sizeof(childNumLines[i]));
+        int bytesWritten = write(mergerfd, &childNumLines[i], sizeof(childNumLines[i]));
     }
     close(mergerfd);
-    // cout << endl<< "coord: Closed merger pipe." <<endl;
-
 
     // Wait Code Segment. Makes sure that the coord waits for all the sorters/merger to finish and exit.
-    while ((pid = wait(&status)) > 0){
-    //    cout << pid << " closed with status "<<status<<endl;
-    };
+    while ((pid = wait(&status)) > 0);
 
-    cout<<"coord: Terminated Successfully." <<endl;
-
-    return EXIT_SUCCESS;
+    exit(0);
 }

@@ -1,21 +1,25 @@
-
+// =========================================================================================================
+// =========================================================================================================
+// OS Project 2: Sorter (CPP)
+// Joseph Hong
+// Description: This is the sorter node for the overall program. It receives the data from the coord
+// and sorts the range of text that it is assigned to.
+// =========================================================================================================
+// =========================================================================================================
+// Includes
 #include <cstdlib>
-#include <sys/wait.h>
 #include <time.h>
-#include <signal.h>
+#include <sys/times.h>
+#include <signal.h>         // forking and process signals
 #include <unistd.h>
-
-#include <string.h>
-
-#include <iostream>
-#include <fstream>
-#include <sstream>
-
-#include <fcntl.h>
+#include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/stat.h>       // mkfifo
-#include <sys/times.h>  
-
+#include <fcntl.h>
+#include <iostream>         // strings, i/o
+#include <fstream>
+#include <sstream>
+#include <string.h>
 using namespace std;
 
 // =======================================================================================================================================
@@ -79,7 +83,6 @@ void removeSpaces(string &str)
 
 // Get Attribute. Uses a string line and the index of the attribute.
 double getAttributeDouble(string line, int attributeNum){
-    // cout<<"Line: "<<line<<endl;
     string sarray[6];
     string substring;
     removeSpaces(line);
@@ -87,9 +90,7 @@ double getAttributeDouble(string line, int attributeNum){
     for(int i = 0; i < 6; i++){
         getline(ss, substring, ' ');
         sarray[i] = substring;
-        // cout<<substring<<endl;
     }
-    // cout<<"Attribute String: "<<sarray[attributeNum]<<endl;
     double attribute = stod(sarray[attributeNum]);
     return attribute;
 }
@@ -97,11 +98,8 @@ double getAttributeDouble(string line, int attributeNum){
 // Comparison. Takes string A, the current string, and compares it to B. If true is returned,
 // then a swap will take place. False means no swap need occur.
 bool compare(string a, string b, int attributeNum, bool isDescending){
-    // cout << "Starting Compare." <<endl;
     double attributeA = getAttributeDouble(a, attributeNum);
-    // cout<<"Attribute A:"<<attributeA<<endl;;
     double attributeB = getAttributeDouble(b, attributeNum);
-    // cout<<"Attribute B:"<<attributeB<<endl;;
     // descending means that the highest goes to the front. if this is true, then this means that|
     // A and B switch places (as B is higher than A).
     if(isDescending){
@@ -143,11 +141,8 @@ void selectionSort(string array[], int length, int attributeNum, bool isDescendi
         }
         // after the iteration is complete, swap the smallest/largest value with the end
         // of the sorted section
-        // cout<<"From: "<<array[i]<< " and "<< array[minMaxValIndex] <<endl;
         swapPlace(array[i],array[minMaxValIndex]);
-        // cout<<"To: "<<array[i]<< " and "<< array[minMaxValIndex] <<endl;
     }
-    // cout<<"sorted"<<endl;
 }
 
 // Bubble Sort
@@ -160,16 +155,12 @@ void bubbleSort(string array[], int length, int attributeNum, bool isDescending)
             // if true, swap places
             bool compared = compare(array[currentIndex], array[currentIndex+1], attributeNum, isDescending);
             if(compared){
-                // cout<< "Swapping places."<<endl;
-                // cout<<"From: "<<array[currentIndex]<< " and "<< array[currentIndex+1] <<endl;
                 swapPlace(array[currentIndex], array[currentIndex+1]);
-                // cout<<"To: "<<array[currentIndex]<< " and "<< array[currentIndex+1] <<endl;
                 currentIndex++;
                 corrections++;
             }
             //  if false, move to the next index
             else{
-                // cout<< "Nothing changed."<<endl;
                 currentIndex++;
             }
         }
@@ -178,15 +169,13 @@ void bubbleSort(string array[], int length, int attributeNum, bool isDescending)
             sorting = false;
         }
     }
-    // cout<<"Sorted."<<endl;
 }
+
+
 // =======================================================================================================================================
 // =======================================================================================================================================
 // Main Program
-
 int main(int argc, char* argv[]){
-
-    // cout<< "sorter "<<getpid()<<": Starting Process..."<<endl;
 
     // Timer. This adapted from the example in the prompt.
     double t1, t2, cpu_time;
@@ -205,7 +194,7 @@ int main(int argc, char* argv[]){
     int attributeNum = atoi(argv[6]);
     bool isDescending = true;              // display in descending order (default is true)
     string argument = argv[7];
-    if(argument == "ascending"){
+    if(argument == "a"){
         isDescending = false;
     }
 
@@ -219,7 +208,6 @@ int main(int argc, char* argv[]){
     int fd;
 
     // Get Lines. Populate the mainArray with strings.
-    // cout << "sorter: Pipe " <<pid<<" starting read."<<endl;
     ifstream readFile(mainCSV);
     int lineCounter = 0;
     int currentIndex = 0;
@@ -239,39 +227,28 @@ int main(int argc, char* argv[]){
     // Sorting. If sortType is 0, bubble sort. If 1, insertion sort.
     if(sortType == 0){
         bubbleSort(mainArray, numLines, attributeNum, isDescending);
-        // cout<<"Sorted."<<endl;
     }
     else{
         selectionSort(mainArray, numLines, attributeNum, isDescending);
-        // cout<<"Sorted."<<endl;
     }
     
     // Piping. Copy into char array and send through pipe.
     char datastreamChar[60];                      
     sprintf(pipeName, "%d", pid);
-    int linesWritten = 0;
-    cout<<"sorter: Opening pipe "<<pid<<"..."<<endl;
     fd = open(pipeName, O_WRONLY);
     int indexCounter = 0;
     for(int i = 0; i < numLines; i++){
         string temp = mainArray[i];
-        // cout<<pid<<" temp: "<<temp<<endl;
         strncpy(datastreamChar, temp.c_str(), sizeof(datastreamChar));
-        // cout<<pid<<" data: "<<datastreamChar<<endl;
-        // datastreamChar[sizeof(datastreamChar) - 1] = 0;
-        write(fd, datastreamChar, sizeof(datastreamChar));
-        indexCounter++;
-        linesWritten++;
+        int bytesWritten = write(fd, datastreamChar, sizeof(datastreamChar));
     }
 
     // Add Time Report. Send to Merger.
     char timeReport[60];
     t2 = (double) times(&tb2);
-    sprintf(timeReport, "sorter %d: Run time was %lf seconds in real time.", pid, (t2 - t1) / ticspersec);
-    // fd = open(pipeName, O_WRONLY);
-    write(fd, timeReport, sizeof(timeReport)+1);
+    sprintf(timeReport, "sorter %d: Runtime was %lf seconds in real time.", pid, (t2 - t1) / ticspersec);
+    int bytesWritten = write(fd, timeReport, sizeof(timeReport)+1);
     close(fd);
-    // cout << "sorter: Pipe " <<pid<<" closed."<<endl;
 
     // Send SIGUSR1 to root before closing.
     kill(rootPID, SIGUSR1);
