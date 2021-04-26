@@ -1,0 +1,66 @@
+Mon Apr 26 00:07:02 2021 | Chef 9890: Created saladmaker 9892.
+Mon Apr 26 00:07:02 2021 | Chef 9890: Created saladmaker 9893.
+Mon Apr 26 00:07:02 2021 | Chef 9890: Created saladmaker 9894.
+Mon Apr 26 00:07:02 2021 | Chef 9890: Placing ingredients for saladmaker 9893.
+Mon Apr 26 00:07:02 2021 | Saladmaker 9892: Created holding ingredient 0.
+Mon Apr 26 00:07:02 2021 | Saladmaker 9893: Created holding ingredient 1.
+Mon Apr 26 00:07:02 2021 | Saladmaker 9894: Created holding ingredient 2.
+Mon Apr 26 00:07:02 2021 | Saladmaker 9893: Received ingredients.
+Mon Apr 26 00:07:02 2021 | Saladmaker 9893: Weighing and chopping ingredients...
+Mon Apr 26 00:07:02 2021 | Saladmaker 9893: Made salad with 67.2786g tomatoes, 24.0001g peppers, 24.0708g onions.
+Mon Apr 26 00:07:02 2021 | Chef 9890: Placing ingredients for saladmaker 9892.
+Mon Apr 26 00:07:03 2021 | Saladmaker 9892: Received ingredients.
+Mon Apr 26 00:07:03 2021 | Chef 9890: Placing ingredients for saladmaker 9894.
+Mon Apr 26 00:07:03 2021 | Saladmaker 9892: Weighing and chopping ingredients...
+Mon Apr 26 00:07:03 2021 | Saladmaker 9892: Made salad with 64.0003g tomatoes, 54.4822g peppers, 25.1272g onions.
+Mon Apr 26 00:07:04 2021 | Chef 9890: Placing ingredients for saladmaker 9894.
+Mon Apr 26 00:07:04 2021 | Saladmaker 9894: Received ingredients.
+Mon Apr 26 00:07:04 2021 | Saladmaker 9894: Weighing and chopping ingredients...
+Mon Apr 26 00:07:04 2021 | Saladmaker 9894: Made salad with 64.7480g tomatoes, 57.7013g peppers, 24.0001g onions.
+Mon Apr 26 00:07:05 2021 | Chef 9890: Placing ingredients for saladmaker 9893.
+Mon Apr 26 00:07:05 2021 | Saladmaker 9894: Received ingredients.
+Mon Apr 26 00:07:05 2021 | Saladmaker 9894: Weighing and chopping ingredients...
+Mon Apr 26 00:07:05 2021 | Saladmaker 9894: Made salad with 82.9785g tomatoes, 57.7704g peppers, 25.5785g onions.
+Mon Apr 26 00:07:05 2021 | Chef 9890: Placing ingredients for saladmaker 9893.
+Mon Apr 26 00:07:05 2021 | Saladmaker 9893: Received ingredients.
+Mon Apr 26 00:07:05 2021 | Saladmaker 9893: Weighing and chopping ingredients...
+Mon Apr 26 00:07:05 2021 | Saladmaker 9893: Made salad with 70.2013g tomatoes, 25.5785g peppers, 24.6406g onions.
+Mon Apr 26 00:07:06 2021 | Chef 9890: Placing ingredients for saladmaker 9894.
+Mon Apr 26 00:07:06 2021 | Saladmaker 9893: Received ingredients.
+Mon Apr 26 00:07:06 2021 | Saladmaker 9893: Weighing and chopping ingredients...
+Mon Apr 26 00:07:06 2021 | Saladmaker 9893: Made salad with 69.7150g tomatoes, 33.0673g peppers, 31.6674g onions.
+Mon Apr 26 00:07:07 2021 | Chef 9890: Placing ingredients for saladmaker 9894.
+Mon Apr 26 00:07:07 2021 | Saladmaker 9894: Received ingredients.
+Mon Apr 26 00:07:07 2021 | Saladmaker 9894: Weighing and chopping ingredients...
+Mon Apr 26 00:07:07 2021 | Saladmaker 9894: Made salad with 88.1427g tomatoes, 43.5215g peppers, 33.0673g onions.
+Mon Apr 26 00:07:08 2021 | Chef 9890: Placing ingredients for saladmaker 9893.
+Mon Apr 26 00:07:08 2021 | Saladmaker 9894: Received ingredients.
+Mon Apr 26 00:07:08 2021 | Saladmaker 9894: Weighing and chopping ingredients...
+Mon Apr 26 00:07:08 2021 | Saladmaker 9894: Made salad with 85.9716g tomatoes, 57.8080g peppers, 29.5038g onions.
+Mon Apr 26 00:07:08 2021 | Chef 9890: Placing ingredients for saladmaker 9894.
+Mon Apr 26 00:07:08 2021 | Saladmaker 9893: Received ingredients.
+Mon Apr 26 00:07:08 2021 | Saladmaker 9893: Weighing and chopping ingredients...
+Mon Apr 26 00:07:08 2021 | Saladmaker 9893: Made salad with 70.7053g tomatoes, 29.5038g peppers, 33.0228g onions.
+Mon Apr 26 00:07:09 2021 | Saladmaker 9894: Received ingredients.
+Mon Apr 26 00:07:09 2021 | Saladmaker 9894: Weighing and chopping ingredients...
+Mon Apr 26 00:07:09 2021 | Saladmaker 9894: Made salad with 66.3560g tomatoes, 48.6762g peppers, 30.3932g onions.
+Mon Apr 26 00:07:09 2021 | Saladmaker 9892: Terminating...
+Mon Apr 26 00:07:09 2021 | Saladmaker 9892: CPU time was 0.002832 seconds in real time.
+Mon Apr 26 00:07:09 2021 | Saladmaker 9892: Runtime was 7.100000 seconds in real time.
+Mon Apr 26 00:07:09 2021 | Saladmaker 9892: Total time spent waiting for ingredients was 7.100000 seconds in real time.
+Mon Apr 26 00:07:09 2021 | Saladmaker 9892: Ended with 64.0003g tomatoes, 54.4822g peppers, 25.1272g onions used, with a total of 1 salads made.
+Mon Apr 26 00:07:09 2021 | Saladmaker 9892: Terminated.
+Mon Apr 26 00:07:10 2021 | Saladmaker 9893: Terminating...
+Mon Apr 26 00:07:10 2021 | Saladmaker 9893: CPU time was 0.003985 seconds in real time.
+Mon Apr 26 00:07:10 2021 | Saladmaker 9893: Runtime was 8.110000 seconds in real time.
+Mon Apr 26 00:07:10 2021 | Saladmaker 9893: Total time spent waiting for ingredients was 8.100000 seconds in real time.
+Mon Apr 26 00:07:10 2021 | Saladmaker 9893: Ended with 277.9003g tomatoes, 112.1496g peppers, 113.4016g onions used, with a total of 4 salads made.
+Mon Apr 26 00:07:10 2021 | Saladmaker 9893: Terminated.
+Mon Apr 26 00:07:11 2021 | Saladmaker 9894: Terminating...
+Mon Apr 26 00:07:11 2021 | Saladmaker 9894: CPU time was 0.004121 seconds in real time.
+Mon Apr 26 00:07:11 2021 | Saladmaker 9894: Runtime was 9.100000 seconds in real time.
+Mon Apr 26 00:07:11 2021 | Saladmaker 9894: Total time spent waiting for ingredients was 9.100000 seconds in real time.
+Mon Apr 26 00:07:11 2021 | Saladmaker 9894: Ended with 388.1968g tomatoes, 265.4774g peppers, 142.5428g onions used, with a total of 5 salads made.
+Mon Apr 26 00:07:11 2021 | Saladmaker 9894: Terminated.
+Mon Apr 26 00:07:12 2021 | Chef 9890: Created 10 salads.
+Mon Apr 26 00:07:12 2021 | Chef 9890: Successfully terminated.
